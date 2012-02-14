@@ -4,7 +4,7 @@
 """
 
 
-from gnuradio import gr, gru, blks2
+from gnuradio import gr, gru, blks2, digital
 from gnuradio import eng_notation
 from gnuradio.gr import firdes
 from math import pi
@@ -48,14 +48,12 @@ class fsk_demod(gr.hier_block2):
 
 		#these coeffs were found experimentally
 		self._demod = gr.pll_freqdet_cf(0.8, #gain alpha, rad/samp
-										0.3, #gain beta, rad/samp
 										6,  #max freq, rad/samp
 										-6)  #min freq, rad/samp
 
 		#this pll is low phase gain to track the carrier itself, to cancel out freq error
 		#it's a continuous carrier so you don't have to worry too much about it locking fast
-		self._carriertrack = gr.pll_freqdet_cf(0.3,
-											   10e-6,
+		self._carriertrack = gr.pll_freqdet_cf(10e-6,
 											   6,
 											   -6)
 
@@ -65,7 +63,7 @@ class fsk_demod(gr.hier_block2):
 									  self._lpfcoeffs) #coeffs
 
 		print "Samples per symbol: %f" % (float(self._samples_per_second)/self._decim/self._syms_per_sec,)
-		self._softbits = gr.clock_recovery_mm_ff(float(self._samples_per_second)/self._decim/self._syms_per_sec,
+		self._softbits = digital.clock_recovery_mm_ff(float(self._samples_per_second)/self._decim/self._syms_per_sec,
 												 0.25*self._gain_mu*self._gain_mu, #gain omega, = mu/2 * mu_gain^2
 												 self._mu, #mu (decision threshold)
 												 self._gain_mu, #mu gain
@@ -73,7 +71,7 @@ class fsk_demod(gr.hier_block2):
 
 		self._subtract = gr.sub_ff()
 
-		self._slicer = gr.binary_slicer_fb()
+		self._slicer = digital.binary_slicer_fb()
 
 		self.connect(self, self._downsample, self._demod, (self._subtract, 0))
 		self.connect(self._downsample, self._carriertrack)

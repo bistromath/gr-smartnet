@@ -10,17 +10,12 @@
 from gnuradio import gr, gru, blks2, optfir
 from gnuradio import audio
 from gnuradio import eng_notation
-from gnuradio import usrp
+from gnuradio import uhd
 from fsk_demod import fsk_demod
 from optparse import OptionParser
 from gnuradio.eng_option import eng_option
-from usrpm import usrp_dbid
 from gnuradio import smartnet
-from gnuradio.gr import firdes
-#from gnuradio.wxgui import slider
-#from gnuradio.wxgui import stdgui2, fftsink2, form
 
-#from pkt import *
 import time
 import gnuradio.gr.gr_threading as _threading
 import csv
@@ -43,32 +38,30 @@ class my_top_block(gr.top_block):
 
 		if options.filename is not None:
 			self.fs = gr.file_source(gr.sizeof_gr_complex, options.filename)
-			self.rate = 64000000 / options.decim # allow setting of recorded decimation in options
 
 		else:
-			self.u = usrp.source_c()
-			self.u.set_mux(usrp.determine_rx_mux_value(self.u, options.rx_subdev_spec))
-			self.subdev = usrp.selected_subdev(self.u, options.rx_subdev_spec)
-			print "Using RX d'board %s" % self.subdev.side_and_name()
-			self.u.set_decim_rate(options.decim)
+			self.u = uhd.usrp_source(options.addr,
+									 io_type=uhd.io_type.COMPLEX_FLOAT32,
+									 num_channels=1)
+
+			if options.subdev is not None:
+				self.u.set_subdev_spec(options.subdev, 0)
+			self.u.set_samp_rate(options.rate)
+			
 			self.centerfreq = options.centerfreq
 			print "Tuning to: %fMHz" % (self.centerfreq - options.error)
 			if not(self.tune(options.centerfreq - options.error)):
 				print "Failed to set initial frequency"
 	
 			if options.gain is None: #set to halfway
-				g = self.subdev.gain_range()
-				options.gain = (g[0]+g[1]) / 2.0
+				g = self.u.get_gain_range()
+				options.gain = (g.start()+g.stop()) / 2.0
 
 			print "Setting gain to %i" % options.gain
-			self.subdev.set_gain(options.gain)
+			self.u.set_gain(options.gain)
 
-			if self.subdev.name() == "DBS Rx":
-				self.subdev.set_bw(options.bandwidth) #only for DBSRX
-				print "Setting DBS RX bandwidth to %fMHz" % float(options.bandwidth / 1e6)
 
-			self.rate = self.u.adc_rate() / options.decim
-		
+		self.rate = options.rate
 		print "Samples per second is %i" % self.rate
 
 		self._syms_per_sec = 3600;
@@ -182,14 +175,8 @@ class my_top_block(gr.top_block):
 #			self.connect(self.audiodemod, self.subchannelfilt, self.subchannel_clockrec, self.subchannel_slicer, self.subchannel_correlator, self.subchannel_framer, self.subchannel_sink)
 		
 	def tune(self, freq):
-		result = usrp.tune(self.u, 0, self.subdev, freq)
-		if result:
-			# Use residual_freq in s/w freq translator
-			#self.ddc.set_center_freq(-result.residual_freq)
-			print "residual_freq =", result.residual_freq
-			return True
-
-		return False
+		result = self.u.set_center_freq(freq)
+		return True
 
 	def tuneoffset(self, target_freq, rffreq):
 		#print "Setting offset; target freq is %f, Center freq is %f" % (target_freq, rffreq)

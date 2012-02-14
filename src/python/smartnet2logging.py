@@ -7,18 +7,16 @@
 	This program does not include audio output support. It logs channels to disk by talkgroup name. If you don't specify what talkgroups to log, it logs EVERYTHING.
 """
 
-from gnuradio import gr, gru, blks2, optfir
+from gnuradio import gr, gru, blks2, optfir, digital
 from grc_gnuradio import blks2 as grc_blks2
 from gnuradio import audio
 from gnuradio import eng_notation
-from gnuradio import usrp
+from gnuradio import uhd
 from fsk_demod import fsk_demod
 from logging_receiver import logging_receiver
 from optparse import OptionParser
 from gnuradio.eng_option import eng_option
-from usrpm import usrp_dbid
 from gnuradio import smartnet
-from gnuradio.gr import firdes
 #from gnuradio.wxgui import slider
 #from gnuradio.wxgui import stdgui2, fftsink2, form
 
@@ -44,28 +42,32 @@ class my_top_block(gr.top_block):
 	def __init__(self, options, queue):
 		gr.top_block.__init__(self)
 
-		self.u = usrp.source_c()
-		self.u.set_mux(usrp.determine_rx_mux_value(self.u, options.rx_subdev_spec))
-		self.subdev = usrp.selected_subdev(self.u, options.rx_subdev_spec)
-		print "Using RX d'board %s" % self.subdev.side_and_name()
-		self.u.set_decim_rate(options.decim)
+		self.u = uhd.usrp_source(options.addr,
+								 io_type=uhd.io_type.COMPLEX_FLOAT32,
+								 num_channels=1)
+
+		if options.subdev is not None:
+			self.u.set_subdev_spec(options.subdev, 0)
+		self.u.set_samp_rate(options.rate)
+		self.rate = self.u.get_samp_rate()
+
+		# Set the antenna
+		if(options.antenna):
+			self.u.set_antenna(options.antenna, 0)
+		
 		self.centerfreq = options.centerfreq
 		print "Tuning to: %fMHz" % (self.centerfreq - options.error)
 		if not(self.tune(options.centerfreq - options.error)):
 			print "Failed to set initial frequency"
-	
+
 		if options.gain is None: #set to halfway
-			g = self.subdev.gain_range()
-			options.gain = (g[0]+g[1]) / 2.0
+			g = self.u.get_gain_range()
+			options.gain = (g.start()+g.stop()) / 2.0
 
 		print "Setting gain to %i" % options.gain
-		self.subdev.set_gain(options.gain)
+		self.u.set_gain(options.gain)
 
-		if self.subdev.name() == "DBS Rx":
-			self.subdev.set_bw(options.bandwidth) #only for DBSRX
-			print "Setting DBS RX bandwidth to %fMHz" % float(options.bandwidth / 1e6)
-
-		self.rate = self.u.adc_rate() / options.decim
+		self.u.set_bandwidth(options.bandwidth)
 		
 		print "Samples per second is %i" % self.rate
 
@@ -84,7 +86,7 @@ class my_top_block(gr.top_block):
 		print "Control channel offset: %f" % options.offset
 
 		self.demod = fsk_demod(options)
-		self.start_correlator = gr.correlate_access_code_bb("10101100",0) #should mark start of packet
+		self.start_correlator = digital.correlate_access_code_bb("10101100",0) #should mark start of packet
 		self.smartnet_sync = smartnet.sync()
 		self.smartnet_deinterleave = smartnet.deinterleave()
 		self.smartnet_parity = smartnet.parity()
@@ -98,14 +100,8 @@ class my_top_block(gr.top_block):
 
 		
 	def tune(self, freq):
-		result = usrp.tune(self.u, 0, self.subdev, freq)
-		if result:
-			# Use residual_freq in s/w freq translator
-			#self.ddc.set_center_freq(-result.residual_freq)
-			print "residual_freq =", result.residual_freq
-			return True
-
-		return False
+		result = self.u.set_center_freq(freq)
+		return True
 
 def getfreq(chanlist, cmd):
 	if chanlist is None: #if no chanlist file, make a guess. there are four extant bandplan schemes, and i believe this one is the most common.
@@ -144,16 +140,14 @@ def main():
 	parser = OptionParser (option_class=eng_option, conflict_handler="resolve")
 	expert_grp = parser.add_option_group("Expert")
 
-	parser.add_option("-R", "--rx-subdev-spec", type="subdev",
-						help="select USRP Rx side A or B", metavar="SUBDEV")
 	parser.add_option("-f", "--freq", type="eng_float", default=866.9625e6,
 						help="set control channel frequency to MHz [default=%default]", metavar="FREQ")
 	parser.add_option("-c", "--centerfreq", type="eng_float", default=867.5e6,
 						help="set center receive frequency to MHz [default=%default]. Set to center of 800MHz band for best results")
 	parser.add_option("-g", "--gain", type="int", default=None,
 						help="set RF gain", metavar="dB")
-	parser.add_option("-d", "--decim", type="int", default=18,
-						help="set fgpa decimation rate to DECIM [default=%default]")
+	parser.add_option("-r", "--rate", type="eng_float", default=64e6/18,
+						help="set sample rate [default=%default]")
 	parser.add_option("-b", "--bandwidth", type="eng_float", default=3e6,
 						help="set bandwidth of DBS RX frond end [default=%default]")
 	parser.add_option("-C", "--chanlistfile", type="string", default="motochan14.csv",
@@ -168,6 +162,12 @@ def main():
 						help="set audio squelch level (default=%default, play with it)")
 	parser.add_option("-D", "--directory", type="string", default="./log",
 						help="choose a directory in which to save log data [default=%default]")
+	parser.add_option("-a", "--addr", type="string", default="",
+						help="address options to pass to UHD")
+	parser.add_option("-s", "--subdev", type="string",
+						help="UHD subdev spec", default=None)
+	parser.add_option("-A", "--antenna", type="string", default=None,
+					help="select Rx Antenna where appropriate")
 
 	#receive_path.add_options(parser, expert_grp)
 
