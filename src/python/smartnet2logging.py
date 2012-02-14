@@ -258,9 +258,9 @@ def main():
 		#perform cleanup: time to get out of Dodge
 		for rx in audiologgers: #you probably don't need to lock, disconnect, unlock, remove. but you might as well.
 			rx.close()
-			tb.lock()
-			tb.disconnect(rx)
-			tb.unlock()
+			#tb.lock()
+			#tb.disconnect(rx)
+			#tb.unlock()
 			audiologgers.remove(rx)
 
 		tb.stop()

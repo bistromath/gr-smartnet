@@ -7,7 +7,7 @@
 	Based on your AIS decoding software, which is in turn based on the gr-pager code and the gr-air code.
 """
 
-from gnuradio import gr, gru, blks2, optfir
+from gnuradio import gr, gru, blks2, optfir, digital
 from gnuradio import audio
 from gnuradio import eng_notation
 from gnuradio import uhd
@@ -38,6 +38,7 @@ class my_top_block(gr.top_block):
 
 		if options.filename is not None:
 			self.fs = gr.file_source(gr.sizeof_gr_complex, options.filename)
+			self.rate = options.rate
 
 		else:
 			self.u = uhd.usrp_source(options.addr,
@@ -46,13 +47,19 @@ class my_top_block(gr.top_block):
 
 			if options.subdev is not None:
 				self.u.set_subdev_spec(options.subdev, 0)
+				
 			self.u.set_samp_rate(options.rate)
+			self.rate = self.u.get_samp_rate()
+
+			# Set the antenna
+			if(options.antenna):
+				self.u.set_antenna(options.antenna, 0)
 			
 			self.centerfreq = options.centerfreq
 			print "Tuning to: %fMHz" % (self.centerfreq - options.error)
 			if not(self.tune(options.centerfreq - options.error)):
 				print "Failed to set initial frequency"
-	
+
 			if options.gain is None: #set to halfway
 				g = self.u.get_gain_range()
 				options.gain = (g.start()+g.stop()) / 2.0
@@ -60,8 +67,8 @@ class my_top_block(gr.top_block):
 			print "Setting gain to %i" % options.gain
 			self.u.set_gain(options.gain)
 
+			self.u.set_bandwidth(options.bandwidth)
 
-		self.rate = options.rate
 		print "Samples per second is %i" % self.rate
 
 		self._syms_per_sec = 3600;
@@ -77,7 +84,7 @@ class my_top_block(gr.top_block):
 		print "Control channel offset: %f" % options.offset
 
 		self.demod = fsk_demod(options)
-		self.start_correlator = gr.correlate_access_code_bb("10101100",0) #should mark start of packet
+		self.start_correlator = digital.correlate_access_code_bb("10101100",0) #should mark start of packet
 		self.smartnet_sync = smartnet.sync()
 		self.smartnet_deinterleave = smartnet.deinterleave()
 		self.smartnet_parity = smartnet.parity()
@@ -98,8 +105,8 @@ class my_top_block(gr.top_block):
 		if options.audio:
 			self.audiorate = 48000
 #			self.audiodemoddecim = 4
-			self.audiotaps = gr.firdes.low_pass(1, self.rate, 8000, 2000, firdes.WIN_HANN)
-			self.prefilter_decim = (self.rate / self.audiorate) #might have to use a rational resampler for audio
+			self.audiotaps = gr.firdes.low_pass(1, self.rate, 8000, 2000, gr.firdes.WIN_HANN)
+			self.prefilter_decim = int(self.rate / self.audiorate) #might have to use a rational resampler for audio
 			print "Prefilter decimation: %i" % self.prefilter_decim
 			self.audio_prefilter = gr.freq_xlating_fir_filter_ccc(self.prefilter_decim, #decimation
 									      self.audiotaps, #taps
@@ -129,7 +136,7 @@ class my_top_block(gr.top_block):
 #			self.audioresamp = blks2.rational_resampler_fff(self.audiorate/self.gcd, self.rate/self.prefilter_decim/self.gcd)#, self.audiofilttaps)
 
 			#the filtering removes FSK data woobling from the subaudible channel
-			self.audiofilttaps = gr.firdes.high_pass(1, self.audiorate, 300, 50, firdes.WIN_HANN)
+			self.audiofilttaps = gr.firdes.high_pass(1, self.audiorate, 300, 50, gr.firdes.WIN_HANN)
 
 			self.audiofilt = gr.fir_filter_fff(1, self.audiofilttaps)
 
@@ -255,7 +262,7 @@ def parse(s, shorttglist, longtglist, chanlist, elimdupes):
 
 	else:
 		if getfreq(chanlist, command) is not None and dupes.get(command, None) != address:
-			retval = "Freq assignment: " + str(shortname) + "(" + str(address) + ")" + " @ " + str(getfreq(chanlist, command)) + " (" + str(longname) + ")"
+			retval = "Freq assignment: " + str(shortname) + " (" + str(address) + ")" + " @ " + str(getfreq(chanlist, command)) + " (" + str(longname) + ")"
 
 	if elimdupes is True:
 		dupes[command] = address
@@ -272,16 +279,12 @@ def main():
 	parser = OptionParser (option_class=eng_option, conflict_handler="resolve")
 	expert_grp = parser.add_option_group("Expert")
 
-	parser.add_option("-R", "--rx-subdev-spec", type="subdev",
-						help="select USRP Rx side A or B", metavar="SUBDEV")
 	parser.add_option("-f", "--freq", type="eng_float", default=866.9625e6,
 						help="set control channel frequency to MHz [default=%default]", metavar="FREQ")
 	parser.add_option("-c", "--centerfreq", type="eng_float", default=867.5e6,
 						help="set center receive frequency to MHz [default=%default]. Set to center of 800MHz band for best results")
 	parser.add_option("-g", "--gain", type="int", default=None,
 						help="set RF gain", metavar="dB")
-	parser.add_option("-d", "--decim", type="int", default=18,
-						help="set fgpa decimation rate to DECIM [default=%default]")
 	parser.add_option("-b", "--bandwidth", type="eng_float", default=3e6,
 						help="set bandwidth of DBS RX frond end [default=%default]")
 	parser.add_option("-F", "--filename", type="string", default=None,
@@ -294,7 +297,7 @@ def main():
 						help="do not eliminate duplicate records (produces lots of noise)")
 	parser.add_option("-E", "--error", type="eng_float", default=0,
 						help="enter an offset error to compensate for USRP clock inaccuracy")
-	parser.add_option("-a", "--audio", action="store_true", default=False,
+	parser.add_option("-u", "--audio", action="store_true", default=False,
 						help="output audio on speaker")
 	parser.add_option("-m", "--monitor", type="int", default=None,
 						help="monitor a specific talkgroup")
@@ -302,6 +305,14 @@ def main():
 						help="set volume gain for audio output [default=%default]")
 	parser.add_option("-s", "--squelch", type="eng_float", default=28,
 						help="set audio squelch level (default=%default, play with it)")
+	parser.add_option("-s", "--subdev", type="string",
+						help="UHD subdev spec", default=None)
+	parser.add_option("-A", "--antenna", type="string", default=None,
+					help="select Rx Antenna where appropriate")
+	parser.add_option("-r", "--rate", type="eng_float", default=64e6/18,
+						help="set sample rate [default=%default]")
+	parser.add_option("-a", "--addr", type="string", default="",
+						help="address options to pass to UHD")
 
 	#receive_path.add_options(parser, expert_grp)
 

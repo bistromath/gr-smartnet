@@ -57,7 +57,7 @@ class fsk_demod(gr.hier_block2):
 											   6,
 											   -6)
 
-		self._lpfcoeffs = gr.firdes.low_pass(1000, self._samples_per_second / self._decim, self._syms_per_sec, 100, firdes.WIN_HANN)
+		self._lpfcoeffs = gr.firdes.low_pass(1, self._samples_per_second / self._decim, self._syms_per_sec, 100, firdes.WIN_HANN)
 
 		self._lpf = gr.fir_filter_fff(self._filtdecim, #decimation
 									  self._lpfcoeffs) #coeffs
