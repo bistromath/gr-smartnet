@@ -92,42 +92,34 @@ smartnet_deinterleave::general_work (int noutput_items,
                         gr_vector_const_void_star &input_items,
                         gr_vector_void_star &output_items)
 {
-  const char *in = (const char *) input_items[0];
-  char *out = (char *) output_items[0];
+    const char *in = (const char *) input_items[0];
+    char *out = (char *) output_items[0];
 
-  int j = 0; //j is the output item counter
-  int i = 0; //i is the input item counter
-  int k = 0; //k is the loop counter for deinterleaving
-  int l = 0;
+    int j = 0; //j is the output item counter
+    int i = 0; //i is the input item counter
+    int k = 0; //k is the loop counter for deinterleaving
+    int l = 0;
 
-  while(i < noutput_items){
+    while(i < noutput_items){
 
 	if(in[i] & 0x02) {//if the start bit is set
 	//then the next 76 bits get deinterleaved according to the formula
 	//{1,20,39,58,2,21,40,59,3,22,41,60,...}
-		if(noutput_items - i < 76) {
-			consume_each(i);	
-			return j;
+	    if(noutput_items - i < 76) {
+		consume_each(i);	
+		return j;
+	    }
+	    for(k = 0; k < 76/4; k++) {
+		for(l = 0; l < 4; l++) {
+		    out[j + k*4 + l] = in[i + k + l*19];
 		}
-		for(k = 0; k < 76/4; k++) {
-			for(l = 0; l < 4; l++) {
-			out[j + k*4 + l] = in[i + k + l*19];
-//			out[j + k*4 + l] = in[i + k*4 + l];
-		}
-//			printf("Deinterleaving input item %i to output item %i\n", k, k*4);
-//			printf("Deinterleaving input item %i to output item %i\n", k+19, k*4+1);
-//			printf("Deinterleaving input item %i to output item %i\n", k+38, k*4+2);
-//			printf("Deinterleaving input item %i to output item %i\n", k+57, k*4+3);
-			//
-		}
-		j+=76;
-		i+=84;
+	    }
+	    j+=76;
+	    i+=84;
 	} else i++;
-  }
+    }
 
-  consume_each(i); //tell gnuradio how many input items we used
-//  ninput_items[0] = i;
-  // Tell runtime system how many output items we produced.
-  return j;
+    consume_each(i); //tell gnuradio how many input items we used
+    return j;
 }
 
