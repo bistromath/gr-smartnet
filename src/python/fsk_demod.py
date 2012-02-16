@@ -41,7 +41,7 @@ class fsk_demod(gr.hier_block2):
 
 		print "Demodulator decimation: %i" % (self._decim,)
 
-		self._downsample = gr.freq_xlating_fir_filter_ccc(self._decim, #decimation
+		self._downsample = gr.freq_xlating_fir_filter_ccf(self._decim, #decimation
 														  self._downsampletaps, #taps
 														  self._freqoffset, #freq offset
 														  self._samples_per_second) #sampling rate
