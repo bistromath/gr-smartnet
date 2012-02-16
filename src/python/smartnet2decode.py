@@ -92,8 +92,6 @@ class my_top_block(gr.top_block):
 		self.smartnet_packetize = smartnet.packetize()
 		self.parse = smartnet.parse(queue) #packet-based. this simply posts lightly-formatted messages to the queue.
 
-#		self.filesink = gr.file_sink(gr.sizeof_char*16, "smartnet_decoded.dat") #set a friggin filename in the options
-#		self.paritysink = gr.file_sink(gr.sizeof_char, "smartnet_parity.dat")
 		if options.filename is None:		
 			self.connect(self.u, self.demod)
 		else:
