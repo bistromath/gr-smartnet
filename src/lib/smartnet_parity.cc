@@ -56,9 +56,6 @@ static const int MAX_IN = 1;    // maximum number of input streams
 static const int MIN_OUT = 1;   // minimum number of output streams
 static const int MAX_OUT = 1;   // maximum number of output streams
 
-/*
- * The private constructor
- */
 smartnet_parity::smartnet_parity ()
   : gr_block ("parity",
                    gr_make_io_signature (MIN_IN, MAX_IN, sizeof (char)),
@@ -66,73 +63,66 @@ smartnet_parity::smartnet_parity ()
 {
   set_relative_rate(0.5);
   set_output_multiple(38);
-  //printf("Calling constructor\n");
 }
 
-/*
- * Our virtual destructor.
- */
 smartnet_parity::~smartnet_parity ()
 {
-  // nothing else required in this example
+
 }
 
 void smartnet_parity::forecast (int noutput_items,
-	       gr_vector_int &ninput_items_required) //estimate number of input samples required for noutput_items samples
+	       gr_vector_int &ninput_items_required)
 {
-	ninput_items_required[0] = noutput_items * 2;
+    ninput_items_required[0] = noutput_items * 2;
 }
 
-
 int 
-smartnet_parity::general_work (int noutput_items,
+smartnet_parity::general_work ( int noutput_items,
 		                gr_vector_int &ninput_items,
-                        gr_vector_const_void_star &input_items,
-                        gr_vector_void_star &output_items)
+				gr_vector_const_void_star &input_items,
+				gr_vector_void_star &output_items)
 {
-  const char *in = (const char *) input_items[0];
-  char *out = (char *) output_items[0];
+    const char *in = (const char *) input_items[0];
+    char *out = (char *) output_items[0];
 
-  int j = 0; //j is the output item counter
-  int i = 0; //i is the input item counter
+    int j = 0; //j is the output item counter
+    int i = 0; //i is the input item counter
 
-  char expected[noutput_items * 2];
-  char syndrome[noutput_items * 2];
+    char expected[noutput_items * 2];
+    char syndrome[noutput_items * 2];
 
-  //first we calculate the EXPECTED parity bits from the RECEIVED bitstream
-  //parity is I[i] ^ I[i-1]
-  //since the bitstream is still interleaved with the P bits, we can do this while running
-  expected[0] = in[0] & 0x01; //info bit
-  expected[1] = in[0] & 0x01; //this is a parity bit, prev bits were 0 so we call x ^ 0 = x
-  for(int k = 2; k < noutput_items*2; k+=2) {
+    //first we calculate the EXPECTED parity bits from the RECEIVED bitstream
+    //parity is I[i] ^ I[i-1]
+    //since the bitstream is still interleaved with the P bits, we can do this while running
+    expected[0] = in[0] & 0x01; //info bit
+    expected[1] = in[0] & 0x01; //this is a parity bit, prev bits were 0 so we call x ^ 0 = x
+    for(int k = 2; k < noutput_items*2; k+=2) {
 	expected[k] = in[k] & 0x01; //info bit
 	expected[k+1] = (in[k] & 0x01) ^ (in[k-2] & 0x01); //parity bit
-  }
+    }
 
-  for(int k = 0; k < noutput_items*2; k++) {
+    for(int k = 0; k < noutput_items*2; k++) {
 	syndrome[k] = expected[k] ^ (in[k] & 0x01); //calculate the syndrome
-//	if(syndrome[k]) printf("Bit error at bit %i\n", k);
- }
+	if(VERBOSE) if(syndrome[k]) printf("Bit error at bit %i\n", k);
+    }
 
-  for(int k = 0; k < noutput_items-1; k++) {
+    for(int k = 0; k < noutput_items-1; k++) {
 	//now we correct the data using the syndrome: if two consecutive parity bits are flipped, you've got a bad previous bit
 	if(syndrome[2*k+1] && syndrome[2*k+3]) {
-		out[k] = (in[2*k] & 0x01) ? 0 : 1; //byte-safe bit flip
-		if(in[2*k]&0x02) out[k] += 0x02; //keep that start flag
-		//printf("I just flipped a bit!\n");
+	    out[k] = (in[2*k] & 0x01) ? 0 : 1; //byte-safe bit flip
+	    if(VERBOSE) printf("I just flipped a bit!\n");
 	}
 	else out[k] = in[2*k];
-  }
-  out[noutput_items-1] = in[2*(noutput_items-1)]; //guard bit at the end
+    }
+    out[noutput_items-1] = in[2*(noutput_items-1)]; //guard bit at the end
 
-//  int errors = 0;
-//  for(int k = 0; k < noutput_items * 2; k++) if(syndrome[k]) errors++;
-//  if(errors != 0) printf("%i syndrome errors\n", errors);
+    if(VERBOSE) {
+	int errors = 0;
+	for(int k = 0; k < noutput_items * 2; k++) if(syndrome[k]) errors++;
+	if(errors != 0) printf("%i syndrome errors\n", errors);
+    }
 
-
-  consume_each(noutput_items*2); //tell gnuradio how many input items we used
-//  ninput_items[0] = i;
-  // Tell runtime system how many output items we produced.
-  return noutput_items;
+    consume_each(noutput_items*2); //tell gnuradio how many input items we used
+    return noutput_items; // Tell runtime system how many output items we produced.
 }
 
