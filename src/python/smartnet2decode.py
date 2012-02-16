@@ -108,7 +108,7 @@ class my_top_block(gr.top_block):
 			self.audiotaps = gr.firdes.low_pass(1, self.rate, 8000, 2000, gr.firdes.WIN_HANN)
 			self.prefilter_decim = int(self.rate / self.audiorate) #might have to use a rational resampler for audio
 			print "Prefilter decimation: %i" % self.prefilter_decim
-			self.audio_prefilter = gr.freq_xlating_fir_filter_ccc(self.prefilter_decim, #decimation
+			self.audio_prefilter = gr.freq_xlating_fir_filter_ccf(self.prefilter_decim, #decimation
 									      self.audiotaps, #taps
 									      0, #freq offset
 									      self.rate) #sampling rate
