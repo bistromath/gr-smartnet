@@ -32,6 +32,9 @@
 
 #include <smartnet_deinterleave.h>
 #include <gr_io_signature.h>
+#include <gr_tags.h>
+
+#define VERBOSE 0
 
 /*
  * Create a new instance of smartnet_deinterleave and return
@@ -66,7 +69,6 @@ smartnet_deinterleave::smartnet_deinterleave ()
 {
   set_relative_rate((double)(76.0/84.0));
   set_output_multiple(76);
-  //printf("Calling constructor\n");
 }
 
 /*
@@ -95,13 +97,50 @@ smartnet_deinterleave::general_work (int noutput_items,
     const char *in = (const char *) input_items[0];
     char *out = (char *) output_items[0];
 
-    int j = 0; //j is the output item counter
-    int i = 0; //i is the input item counter
-    int k = 0; //k is the loop counter for deinterleaving
-    int l = 0;
+    //you will need to look ahead 84 bits to post 76 bits of data
+    int size = ninput_items[0] - 84;
+    if(size <= 0) {
+	consume_each(0);
+	return 0; //better luck next time
+    }
 
+    uint64_t abs_sample_cnt = nitems_read(0);
+    std::vector<gr_tag_t> preamble_tags;
+
+    get_tags_in_range(preamble_tags, 0, abs_sample_cnt, abs_sample_cnt + size, pmt::pmt_string_to_symbol("smartnet_preamble"));
+    if(preamble_tags.size() == 0) {
+	consume_each(size);
+	return 0; //sad trombone
+    }
+
+    if(VERBOSE) std::cout << "found a preamble at " << preamble_tags[0].offset << std::endl;
+
+    uint64_t mark = preamble_tags[0].offset - abs_sample_cnt;
+
+    //note to self: the old way to do it, you looked ahead another 84 bits to ensure there was a valid frame there, too.
+    //i'm not sure you need to do that.
+    int j = 0;
+    for(int k=0; k<76/4; k++) {
+	for(int l=0; l<4; l++) {
+	    out[k*4 + l] = in[mark + k + l*19];
+	}
+    }
+
+    //since you're a nonsynchronized block, you have to reissue a
+    //tag with the correct output sample number
+    //until you replace the downstream, just make it 0x02 instead.
+    out[0] |= 0x02;
+
+    int num_consumed = 84 + (preamble_tags[0].offset - nitems_read(0));
+    consume_each(num_consumed);
+    if(VERBOSE) std::cout << "Consumed " << num_consumed << " samples" << std::endl;
+    return 76;
+}
+
+/*
     while(i < noutput_items){
-
+	//find preamble tags
+	
 	if(in[i] & 0x02) {//if the start bit is set
 	//then the next 76 bits get deinterleaved according to the formula
 	//{1,20,39,58,2,21,40,59,3,22,41,60,...}
@@ -109,8 +148,8 @@ smartnet_deinterleave::general_work (int noutput_items,
 		consume_each(i);	
 		return j;
 	    }
-	    for(k = 0; k < 76/4; k++) {
-		for(l = 0; l < 4; l++) {
+	    for(int k = 0; k < 76/4; k++) {
+		for(int l = 0; l < 4; l++) {
 		    out[j + k*4 + l] = in[i + k + l*19];
 		}
 	    }
@@ -121,5 +160,4 @@ smartnet_deinterleave::general_work (int noutput_items,
 
     consume_each(i); //tell gnuradio how many input items we used
     return j;
-}
-
+*/

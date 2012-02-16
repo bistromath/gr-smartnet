@@ -84,25 +84,24 @@ class my_top_block(gr.top_block):
 		print "Control channel offset: %f" % options.offset
 
 		self.demod = fsk_demod(options)
-		self.start_correlator = digital.correlate_access_code_bb("10101100",0) #should mark start of packet
-		self.smartnet_sync = smartnet.sync()
+		self.start_correlator = gr.correlate_access_code_tag_bb("10101100",0, "smartnet_preamble") #should mark start of packet
+		#self.smartnet_sync = smartnet.sync() #won't need w/tags
 		self.smartnet_deinterleave = smartnet.deinterleave()
 		self.smartnet_parity = smartnet.parity()
 		self.smartnet_crc = smartnet.crc()
 		self.smartnet_packetize = smartnet.packetize()
-		self.parse = smartnet.parse(queue) #packet-based. this simply posts lightly-formatted messages to the queue.
+		self.parse = smartnet.parse(queue) #replace with a message sink
 
 		if options.filename is None:		
 			self.connect(self.u, self.demod)
 		else:
 			self.connect(self.fs, self.demod)
 
-		self.connect(self.demod, self.start_correlator, self.smartnet_sync, self.smartnet_deinterleave, self.smartnet_parity, self.smartnet_crc, self.smartnet_packetize, self.parse)
+		self.connect(self.demod, self.start_correlator, self.smartnet_deinterleave, self.smartnet_parity, self.smartnet_crc, self.smartnet_packetize, self.parse)
 
 		#hook up the audio patch
 		if options.audio:
 			self.audiorate = 48000
-#			self.audiodemoddecim = 4
 			self.audiotaps = gr.firdes.low_pass(1, self.rate, 8000, 2000, gr.firdes.WIN_HANN)
 			self.prefilter_decim = int(self.rate / self.audiorate) #might have to use a rational resampler for audio
 			print "Prefilter decimation: %i" % self.prefilter_decim
@@ -126,22 +125,12 @@ class my_top_block(gr.top_block):
 							    1, #gain
 							    75e-6) #deemphasis constant
 
-			#the point of the resampler is to bring data to the soundcard at a rate it supports, but it seems to sound fine without it, and it saves some CPU cycles not to have it
-			#the audio rate is 48kHz because seemingly it's all my *&$# integrated sound card will support, otherwise it'd be like 8k or something reasonable
-			#running a 48kHz audio rate isn't the end of the world -- with decim 18 and prefilter decim 74, the native rate is 48.048kHz. that's close enough to avoid the resampler.
-#			self.gcd = self.euclid(self.audiorate, self.rate/self.prefilter_decim)
-#			print "Resampling: decim %i, interp %i" % (self.rate/self.prefilter_decim/self.gcd, self.audiorate/self.gcd)
-#			self.audioresamp = blks2.rational_resampler_fff(self.audiorate/self.gcd, self.rate/self.prefilter_decim/self.gcd)#, self.audiofilttaps)
-
-			#the filtering removes FSK data woobling from the subaudible channel
+			#the filtering removes FSK data woobling from the subaudible channel (might be able to combine w/lpf above)
 			self.audiofilttaps = gr.firdes.high_pass(1, self.audiorate, 300, 50, gr.firdes.WIN_HANN)
-
 			self.audiofilt = gr.fir_filter_fff(1, self.audiofilttaps)
-
 			self.audiogain = gr.multiply_const_ff(options.volume)
-
-#			self.audiosink = audio.sink (self.audiorate, "")
-			self.audiosink = gr.wavfile_sink("test.wav", 1, self.audiorate, 8)
+			self.audiosink = audio.sink (self.audiorate, "")
+#			self.audiosink = gr.wavfile_sink("test.wav", 1, self.audiorate, 8)
 
 			self.mute()
 
@@ -153,30 +142,24 @@ class my_top_block(gr.top_block):
 #			self.connect(self.audio_prefilter, self.squelch, self.audiodemod, self.audiofilt, self.audiogain, self.audioresamp, self.audiosink)
 			self.connect(self.audio_prefilter, self.squelch, self.audiodemod, self.audiofilt, self.audiogain, self.audiosink)
 
+###########SUBCHANNEL DECODING EXPERIMENT###########
 			#here we set up the low-pass filter for audio subchannel data decoding. gain of 10, decimation of 10.
-
 #			self.subchannel_decimation = 50
 #			self.subchannel_gain = 10
-
 #			self.subchannelfilttaps = gr.firdes.low_pass(self.subchannel_gain, self.audiorate, 200, 40, firdes.WIN_HANN)
 #			self.subchannelfilt = gr.fir_filter_fff(self.subchannel_decimation, self.subchannelfilttaps)
-
 #			self.subchannel_syms_per_sec = 150
 #			self.subchannel_samples_per_symbol = (self.audiorate / self.subchannel_decimation) / self.subchannel_syms_per_sec
-
 #			print "Subchannel samples per symbol: %f" % self.subchannel_samples_per_symbol
-
 #			self.subchannel_clockrec = gr.clock_recovery_mm_ff(self.subchannel_samples_per_symbol,
-#																												 0.25*0.01*0.01,
-#																												 0.5,
-#																												 0.01,
-#																												 0.3)
-
+#															   0.25*0.01*0.01,
+#															   0.5,
+#															   0.01,
+#															   0.3)
 #			self.subchannel_slicer = gr.binary_slicer_fb()
 #			self.subchannel_correlator = gr.correlate_access_code_bb("01000",0)
 #			self.subchannel_framer = smartnet.subchannel_framer()
 #			self.subchannel_sink = gr.null_sink(1); #just so it doesn't bitch until we do something with it
-
 #			self.connect(self.audiodemod, self.subchannelfilt, self.subchannel_clockrec, self.subchannel_slicer, self.subchannel_correlator, self.subchannel_framer, self.subchannel_sink)
 		
 	def tune(self, freq):
@@ -194,13 +177,6 @@ class my_top_block(gr.top_block):
 		self.setvolume(0)
 	def unmute(self, volume):
 		self.setvolume(volume)
-
-	def euclid(self, numA, numB):
-		while numB != 0:
-			numRem = numA % numB
-			numA = numB
-			numB = numRem
-		return numA
 
 def getfreq(chanlist, cmd):
 	if chanlist is None:
