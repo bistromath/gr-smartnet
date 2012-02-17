@@ -84,20 +84,22 @@ class my_top_block(gr.top_block):
 		print "Control channel offset: %f" % options.offset
 
 		self.demod = fsk_demod(options)
-		self.start_correlator = gr.correlate_access_code_tag_bb("10101100",0, "smartnet_preamble") #should mark start of packet
+		self.start_correlator = gr.correlate_access_code_tag_bb("10101100",
+		                                                        0,
+		                                                        "smartnet_preamble") #should mark start of packet
 		#self.smartnet_sync = smartnet.sync() #won't need w/tags
 		self.smartnet_deinterleave = smartnet.deinterleave()
-		self.smartnet_parity = smartnet.parity()
-		self.smartnet_crc = smartnet.crc()
-		self.smartnet_packetize = smartnet.packetize()
-		self.parse = smartnet.parse(queue) #replace with a message sink
+		#self.smartnet_parity = smartnet.parity()
+		self.smartnet_crc = smartnet.crc(queue)
+		#self.smartnet_packetize = smartnet.packetize()
+		#self.parse = smartnet.parse(queue) #replace with a message sink
 
 		if options.filename is None:		
 			self.connect(self.u, self.demod)
 		else:
 			self.connect(self.fs, self.demod)
 
-		self.connect(self.demod, self.start_correlator, self.smartnet_deinterleave, self.smartnet_parity, self.smartnet_crc, self.smartnet_packetize, self.parse)
+		self.connect(self.demod, self.start_correlator, self.smartnet_deinterleave, self.smartnet_crc)
 
 		#hook up the audio patch
 		if options.audio:

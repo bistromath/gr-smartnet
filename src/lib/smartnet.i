@@ -29,10 +29,7 @@
 #include "smartnet_types.h"
 #include "smartnet_sync.h"
 #include "smartnet_deinterleave.h"
-#include "smartnet_parity.h"
 #include "smartnet_crc.h"
-#include "smartnet_packetize.h"
-#include "smartnet_parse.h"
 #include "smartnet_subchannel_framer.h"
 #include "smartnet_wavsink.h"
 #include <stdexcept>
@@ -62,50 +59,14 @@ private:
 public:
 };
 
-GR_SWIG_BLOCK_MAGIC(smartnet,parity);
-
-smartnet_parity_sptr smartnet_make_parity();
-
-class smartnet_parity : public gr_block
-{
-private:
-	smartnet_parity();
-
-public:
-};
-
-GR_SWIG_BLOCK_MAGIC(smartnet,packetize);
-
-smartnet_packetize_sptr smartnet_make_packetize();
-
-class smartnet_packetize : public gr_block
-{
-private:
-	smartnet_packetize();
-
-public:
-};
-
 GR_SWIG_BLOCK_MAGIC(smartnet,crc);
 
-smartnet_crc_sptr smartnet_make_crc();
+smartnet_crc_sptr smartnet_make_crc(gr_msg_queue_sptr queue);
 
 class smartnet_crc : public gr_sync_block
 {
 private:
-	smartnet_crc();
-
-public:
-};
-
-GR_SWIG_BLOCK_MAGIC(smartnet,parse);
-
-smartnet_parse_sptr smartnet_make_parse(gr_msg_queue_sptr queue);
-
-class smartnet_parse : public gr_sync_block
-{
-private:
-	smartnet_parse(gr_msg_queue_sptr queue);
+	smartnet_crc(gr_msg_queue_sptr queue);
 
 public:
 };
@@ -121,30 +82,7 @@ private:
 
 public:
 };
-/*****NO LONGER USED! We're stamping via .txt now.
-GR_SWIG_BLOCK_MAGIC(smartnet,wavstamp);
 
-smartnet_wavstamp_sptr
-smartnet_make_wavstamp (const char *filename,
-                        bool gate = false) throw (std::runtime_error);
-
-class smartnet_wavstamp : public gr_sync_block
-{
-private:
-  smartnet_wavstamp(const char *filename,
-		    bool gate) throw (std::runtime_error);
-
-public:
-  ~smartnet_wavstamp();
-
-	void stamp();
-	void wat(bool who);
-
-  unsigned int sample_rate();
-  int bits_per_sample();
-  int channels();
-};
-*/
 GR_SWIG_BLOCK_MAGIC(smartnet,wavsink);
 
 smartnet_wavsink_sptr

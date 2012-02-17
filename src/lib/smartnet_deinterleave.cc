@@ -92,6 +92,8 @@ smartnet_deinterleave::general_work (int noutput_items,
     const char *in = (const char *) input_items[0];
     char *out = (char *) output_items[0];
 
+    if(VERBOSE) std::cout << "Deinterleave called with " << noutput_items << " outputs" << std::endl;
+
     //you will need to look ahead 84 bits to post 76 bits of data
     int size = ninput_items[0] - 84;
     if(size <= 0) {
@@ -127,7 +129,7 @@ smartnet_deinterleave::general_work (int noutput_items,
 		 pmt::pmt_t() //data (unused here)
 		);
 
-    int num_consumed = 84 + (preamble_tags[0].offset - nitems_read(0));
+    int num_consumed = 84 + mark;
     consume_each(num_consumed);
     if(VERBOSE) std::cout << "Consumed " << num_consumed << " samples" << std::endl;
     return 76;

@@ -32,6 +32,9 @@
 
 #include <smartnet_parity.h>
 #include <gr_io_signature.h>
+#include <gr_tags.h>
+
+#define VERBOSE 1
 
 /*
  * Create a new instance of smartnet_parity and return
@@ -85,9 +88,6 @@ smartnet_parity::general_work ( int noutput_items,
     const char *in = (const char *) input_items[0];
     char *out = (char *) output_items[0];
 
-    int j = 0; //j is the output item counter
-    int i = 0; //i is the input item counter
-
     char expected[noutput_items * 2];
     char syndrome[noutput_items * 2];
 
@@ -103,14 +103,14 @@ smartnet_parity::general_work ( int noutput_items,
 
     for(int k = 0; k < noutput_items*2; k++) {
 	syndrome[k] = expected[k] ^ (in[k] & 0x01); //calculate the syndrome
-	if(VERBOSE) if(syndrome[k]) printf("Bit error at bit %i\n", k);
+	if(VERBOSE) if(syndrome[k]) std::cout << "Bit error at bit " << k << std::endl;
     }
 
     for(int k = 0; k < noutput_items-1; k++) {
 	//now we correct the data using the syndrome: if two consecutive parity bits are flipped, you've got a bad previous bit
 	if(syndrome[2*k+1] && syndrome[2*k+3]) {
 	    out[k] = (in[2*k] & 0x01) ? 0 : 1; //byte-safe bit flip
-	    if(VERBOSE) printf("I just flipped a bit!\n");
+	    if(VERBOSE) std::cout << "I just flipped a bit!" << std::endl;
 	}
 	else out[k] = in[2*k];
     }
@@ -119,7 +119,7 @@ smartnet_parity::general_work ( int noutput_items,
     if(VERBOSE) {
 	int errors = 0;
 	for(int k = 0; k < noutput_items * 2; k++) if(syndrome[k]) errors++;
-	if(errors != 0) printf("%i syndrome errors\n", errors);
+	if(errors != 0) std::cout << errors << " syndrome errors" << std::endl;
     }
 
     consume_each(noutput_items*2); //tell gnuradio how many input items we used

@@ -29,42 +29,27 @@
 #include <gr_io_signature.h>
 #include <stdio.h>
 #include <gr_tags.h>
+#include <sstream>
+#include <smartnet_types.h>
 
-#define VERBOSE 1
+#define VERBOSE 0
 
 /*
  * Create a new instance of smartnet_crc and return
  * a boost shared_ptr.  This is effectively the public constructor.
  */
-smartnet_crc_sptr smartnet_make_crc()
+smartnet_crc_sptr smartnet_make_crc(gr_msg_queue_sptr queue)
 {
-  return smartnet_crc_sptr (new smartnet_crc ());
+  return smartnet_crc_sptr (new smartnet_crc (queue));
 }
 
-/*
- * Specify constraints on number of input and output streams.
- * This info is used to construct the input and output signatures
- * (2nd & 3rd args to gr_block's constructor).  The input and
- * output signatures are used by the runtime system to
- * check that a valid number and type of inputs and outputs
- * are connected to this block.  In this case, we accept
- * only 1 input and 1 output.
- */
-static const int MIN_IN = 1;    // mininum number of input streams
-static const int MAX_IN = 1;    // maximum number of input streams
-static const int MIN_OUT = 1;   // minimum number of output streams
-static const int MAX_OUT = 1;   // maximum number of output streams
-
-/*
- * The private constructor
- */
-smartnet_crc::smartnet_crc ()
+smartnet_crc::smartnet_crc (gr_msg_queue_sptr queue)
   : gr_sync_block ("crc",
-                   gr_make_io_signature (MIN_IN, MAX_IN, sizeof (char)),
-                   gr_make_io_signature (MIN_OUT, MAX_OUT, sizeof (char)))
+                   gr_make_io_signature (1, 1, sizeof (char)),
+                   gr_make_io_signature (0, 0, 0))
 {
-    //nothing else required in this example
     set_output_multiple(38);
+    d_queue = queue;
 }
 
 /*
@@ -75,15 +60,89 @@ smartnet_crc::~smartnet_crc ()
     //nothing else required in this example
 }
 
+static void smartnet_ecc(char *out, const char *in) {
+    char expected[76];
+    char syndrome[76];
+
+    //first we calculate the EXPECTED parity bits from the RECEIVED bitstream
+    //parity is I[i] ^ I[i-1]
+    //since the bitstream is still interleaved with the P bits, we can do this while running
+    expected[0] = in[0] & 0x01; //info bit
+    expected[1] = in[0] & 0x01; //this is a parity bit, prev bits were 0 so we call x ^ 0 = x
+    for(int k = 2; k < 76*2; k+=2) {
+	expected[k] = in[k] & 0x01; //info bit
+	expected[k+1] = (in[k] & 0x01) ^ (in[k-2] & 0x01); //parity bit
+    }
+
+    for(int k = 0; k < 76; k++) {
+	syndrome[k] = expected[k] ^ (in[k] & 0x01); //calculate the syndrome
+	if(VERBOSE) if(syndrome[k]) std::cout << "Bit error at bit " << k << std::endl;
+    }
+
+    for(int k = 0; k < 38-1; k++) {
+	//now we correct the data using the syndrome: if two consecutive
+	//parity bits are flipped, you've got a bad previous bit
+	if(syndrome[2*k+1] && syndrome[2*k+3]) {
+	    out[k] = (in[2*k] & 0x01) ? 0 : 1; //byte-safe bit flip
+	    if(VERBOSE) std::cout << "I just flipped a bit!" << std::endl;
+	}
+	else out[k] = in[2*k];
+    }
+}
+
+static bool crc(const char *in) {
+    unsigned int crcaccum = 0x0393;
+    unsigned int crcop = 0x036E;
+    unsigned int crcgiven;
+
+    //calc expected crc
+    for(int j=0; j<27; j++) {
+	if(crcop & 0x01) crcop = (crcop >> 1)^0x0225;
+	else crcop >>= 1;
+	if (in[j] & 0x01) crcaccum = crcaccum ^ crcop;
+    }
+
+    //load given crc
+    crcgiven = 0x0000;
+    for(int j=0; j<10; j++) {
+	crcgiven <<= 1;
+	crcgiven += !bool(in[j+27] & 0x01);
+    }
+
+    return (crcgiven == crcaccum);
+}
+
+static smartnet_packet parse(const char *in) {
+    smartnet_packet pkt;
+    
+    pkt.address = 0;
+    pkt.groupflag = false;
+    pkt.command = 0;
+    pkt.crc = 0;
+
+    int i=0;
+    
+    for(int k = 15; k >=0 ; k--) pkt.address += (!bool(in[i++] & 0x01)) << k; //first 16 bits are ID, MSB first
+    pkt.groupflag = !bool(in[i++]);
+    for(int k = 9; k >=0 ; k--) pkt.command += (!bool(in[i++] & 0x01)) << k; //next 10 bits are command, MSB first
+    for(int k = 9; k >=0 ; k--) pkt.crc += (!bool(in[i++] & 0x01)) << k; //next 10 bits are CRC
+    i++; //skip the guard bit
+
+    //now correct things according to the mottrunk.txt description
+    pkt.address ^= 0x33C7;
+    pkt.command ^= 0x032A;
+    
+    return pkt;
+}
+
 int 
 smartnet_crc::work (int noutput_items,
 		    gr_vector_const_void_star &input_items,
 		    gr_vector_void_star &output_items)
 {
     const char *in = (const char *) input_items[0];
-    char *out = (char *) output_items[0];
 
-    int size = noutput_items - 38;
+    int size = noutput_items - 76;
     if(size <= 0) {
 	return 0; //better luck next time
     }
@@ -101,68 +160,22 @@ smartnet_crc::work (int noutput_items,
 	uint64_t mark = tag_iter->offset - abs_sample_cnt;
 	if(VERBOSE) std::cout << "found a frame at " << mark << std::endl;
 
+	char databits[38];
+	smartnet_ecc(databits, &in[mark]);
+	bool crc_ok = crc(databits);
 
-	unsigned int crcaccum = 0x0393;
-	unsigned int crcop = 0x036E;
-	unsigned int crcgiven;
+	if(crc_ok) {
+	    if(VERBOSE) std::cout << "CRC OK" << std::endl;
+	    //parse the message into readable chunks
+	    smartnet_packet pkt = parse(databits);
 
-	//calc expected crc
-	for(int j=0; j<27; j++) {
-	    if(crcop & 0x01) crcop = (crcop >> 1)^0x0225;
-	    else crcop >>= 1;
-	}
-
-	//load given crc
-	crcgiven = 0x0000;
-	for(int j=0; j<10; j++) {
-	    crcgiven <<= 1;
-	    crcgiven += !bool(in[mark+j+27] & 0x01);
-	}
-
-	if(VERBOSE) if(crcgiven != crcaccum) std::cout << "Failed CRC!" << std::endl;
-
-	if(crcgiven == crcaccum) {
-	    //send a tag downstream or push a message or something
-	}
+	    //and throw it at the msgq
+	    std::ostringstream payload;
+	    payload.str("");
+	    payload << pkt.address << "," << pkt.groupflag << "," << pkt.command;
+	    gr_message_sptr msg = gr_make_message_from_string(std::string(payload.str()));
+	    d_queue->handle(msg);
+	} else if (VERBOSE) std::cout << "CRC FAILED" << std::endl;
     }
-
-    for(int j=0; j<size; j++) out[j] = in[j];
-    
     return size;
 }
-    
-
-  while(i < noutput_items) {
-	while(!(in[i] & 0x02)) i++; //skip until the start bit is found
-	if((noutput_items-i) < 38) return i;
-
-	crcaccum = 0x0393;
-	crcop = 0x036E;
-
-	//now we're at the start of a 38-bit frame, so calculate the expected crc
-	for(int j = 0; j < 27; j++) {
-		if (crcop & 0x01) crcop = (crcop >> 1) ^ 0x0225; else crcop = crcop >> 1;
-		if (in[i+j] & 0x01) crcaccum = crcaccum ^ crcop;
-	}
-
-	//now we load up the GIVEN crc value
-	crcgiven = 0x0000;
-	for(int j = 0; j < 10; j++) {
-		crcgiven <<= 1;
-		crcgiven += !bool(in[i+j+27] & 0x01);
-	}
-
-	if(crcgiven != crcaccum) printf("Failed CRC!\n");	
-
-	for(int j = 0; j < 38; j++) {
-		if(crcgiven == crcaccum) out[j+i] = in[j+i];
-		else out[j+i] = in[j+i] & 0x01;
-	}
-
-	i += 38;
-  }
-
-  // Tell runtime system how many output items we produced.
-  return noutput_items;
-}
-

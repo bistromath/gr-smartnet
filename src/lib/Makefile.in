@@ -181,11 +181,8 @@ am__installdirs = "$(DESTDIR)$(smartnet_pylibdir)" \
 LTLIBRARIES = $(smartnet_pylib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 _smartnet_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am__objects_1 = _smartnet_la-smartnet_sync.lo \
-	_smartnet_la-smartnet_deinterleave.lo \
-	_smartnet_la-smartnet_parity.lo _smartnet_la-smartnet_crc.lo \
-	_smartnet_la-smartnet_packetize.lo \
-	_smartnet_la-smartnet_parse.lo \
+am__objects_1 = _smartnet_la-smartnet_deinterleave.lo \
+	_smartnet_la-smartnet_crc.lo \
 	_smartnet_la-smartnet_subchannel_framer.lo \
 	_smartnet_la-smartnet_wavsink.lo
 am__smartnet_la_OBJECTS = _smartnet_la-smartnet.lo $(am__objects_1)
@@ -409,12 +406,9 @@ MOSTLYCLEANFILES = $(BUILT_SOURCES) $(STAMPS) *.pyc *.pyo *~ *.tmp \
 
 # C/C++ headers get installed in ${prefix}/include/gnuradio
 grinclude_HEADERS = \
-	smartnet_sync.h		\
 	smartnet_deinterleave.h	\
 	smartnet_parity.h	\
 	smartnet_crc.h	\
-	smartnet_packetize.h	\
-	smartnet_parse.h	\
 	smartnet_types.h	\
 	smartnet_subchannel_framer.h \
 	smartnet_wavsink.h
@@ -440,12 +434,8 @@ smartnet_pythondir_category = \
 
 # additional sources for the SWIG-generated library
 smartnet_la_swig_sources = \
-	smartnet_sync.cc		\
 	smartnet_deinterleave.cc	\
-	smartnet_parity.cc	\
 	smartnet_crc.cc	\
-	smartnet_packetize.cc	\
-	smartnet_parse.cc	\
 	smartnet_subchannel_framer.cc \
 	smartnet_wavsink.cc
 
@@ -609,11 +599,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet_crc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet_deinterleave.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet_packetize.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet_parity.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet_parse.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet_subchannel_framer.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet_sync.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_smartnet_la-smartnet_wavsink.Plo@am__quote@
 
 .cc.o:
@@ -644,13 +630,6 @@ _smartnet_la-smartnet.lo: smartnet.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -c -o _smartnet_la-smartnet.lo `test -f 'smartnet.cc' || echo '$(srcdir)/'`smartnet.cc
 
-_smartnet_la-smartnet_sync.lo: smartnet_sync.cc
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -MT _smartnet_la-smartnet_sync.lo -MD -MP -MF $(DEPDIR)/_smartnet_la-smartnet_sync.Tpo -c -o _smartnet_la-smartnet_sync.lo `test -f 'smartnet_sync.cc' || echo '$(srcdir)/'`smartnet_sync.cc
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/_smartnet_la-smartnet_sync.Tpo $(DEPDIR)/_smartnet_la-smartnet_sync.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='smartnet_sync.cc' object='_smartnet_la-smartnet_sync.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -c -o _smartnet_la-smartnet_sync.lo `test -f 'smartnet_sync.cc' || echo '$(srcdir)/'`smartnet_sync.cc
-
 _smartnet_la-smartnet_deinterleave.lo: smartnet_deinterleave.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -MT _smartnet_la-smartnet_deinterleave.lo -MD -MP -MF $(DEPDIR)/_smartnet_la-smartnet_deinterleave.Tpo -c -o _smartnet_la-smartnet_deinterleave.lo `test -f 'smartnet_deinterleave.cc' || echo '$(srcdir)/'`smartnet_deinterleave.cc
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/_smartnet_la-smartnet_deinterleave.Tpo $(DEPDIR)/_smartnet_la-smartnet_deinterleave.Plo
@@ -658,33 +637,12 @@ _smartnet_la-smartnet_deinterleave.lo: smartnet_deinterleave.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -c -o _smartnet_la-smartnet_deinterleave.lo `test -f 'smartnet_deinterleave.cc' || echo '$(srcdir)/'`smartnet_deinterleave.cc
 
-_smartnet_la-smartnet_parity.lo: smartnet_parity.cc
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -MT _smartnet_la-smartnet_parity.lo -MD -MP -MF $(DEPDIR)/_smartnet_la-smartnet_parity.Tpo -c -o _smartnet_la-smartnet_parity.lo `test -f 'smartnet_parity.cc' || echo '$(srcdir)/'`smartnet_parity.cc
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/_smartnet_la-smartnet_parity.Tpo $(DEPDIR)/_smartnet_la-smartnet_parity.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='smartnet_parity.cc' object='_smartnet_la-smartnet_parity.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -c -o _smartnet_la-smartnet_parity.lo `test -f 'smartnet_parity.cc' || echo '$(srcdir)/'`smartnet_parity.cc
-
 _smartnet_la-smartnet_crc.lo: smartnet_crc.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -MT _smartnet_la-smartnet_crc.lo -MD -MP -MF $(DEPDIR)/_smartnet_la-smartnet_crc.Tpo -c -o _smartnet_la-smartnet_crc.lo `test -f 'smartnet_crc.cc' || echo '$(srcdir)/'`smartnet_crc.cc
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/_smartnet_la-smartnet_crc.Tpo $(DEPDIR)/_smartnet_la-smartnet_crc.Plo
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='smartnet_crc.cc' object='_smartnet_la-smartnet_crc.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -c -o _smartnet_la-smartnet_crc.lo `test -f 'smartnet_crc.cc' || echo '$(srcdir)/'`smartnet_crc.cc
-
-_smartnet_la-smartnet_packetize.lo: smartnet_packetize.cc
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -MT _smartnet_la-smartnet_packetize.lo -MD -MP -MF $(DEPDIR)/_smartnet_la-smartnet_packetize.Tpo -c -o _smartnet_la-smartnet_packetize.lo `test -f 'smartnet_packetize.cc' || echo '$(srcdir)/'`smartnet_packetize.cc
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/_smartnet_la-smartnet_packetize.Tpo $(DEPDIR)/_smartnet_la-smartnet_packetize.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='smartnet_packetize.cc' object='_smartnet_la-smartnet_packetize.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -c -o _smartnet_la-smartnet_packetize.lo `test -f 'smartnet_packetize.cc' || echo '$(srcdir)/'`smartnet_packetize.cc
-
-_smartnet_la-smartnet_parse.lo: smartnet_parse.cc
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -MT _smartnet_la-smartnet_parse.lo -MD -MP -MF $(DEPDIR)/_smartnet_la-smartnet_parse.Tpo -c -o _smartnet_la-smartnet_parse.lo `test -f 'smartnet_parse.cc' || echo '$(srcdir)/'`smartnet_parse.cc
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/_smartnet_la-smartnet_parse.Tpo $(DEPDIR)/_smartnet_la-smartnet_parse.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='smartnet_parse.cc' object='_smartnet_la-smartnet_parse.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -c -o _smartnet_la-smartnet_parse.lo `test -f 'smartnet_parse.cc' || echo '$(srcdir)/'`smartnet_parse.cc
 
 _smartnet_la-smartnet_subchannel_framer.lo: smartnet_subchannel_framer.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(_smartnet_la_CXXFLAGS) $(CXXFLAGS) -MT _smartnet_la-smartnet_subchannel_framer.lo -MD -MP -MF $(DEPDIR)/_smartnet_la-smartnet_subchannel_framer.Tpo -c -o _smartnet_la-smartnet_subchannel_framer.lo `test -f 'smartnet_subchannel_framer.cc' || echo '$(srcdir)/'`smartnet_subchannel_framer.cc

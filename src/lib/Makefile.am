@@ -23,12 +23,9 @@ include $(top_srcdir)/Makefile.common
 
 # C/C++ headers get installed in ${prefix}/include/gnuradio
 grinclude_HEADERS =		\
-	smartnet_sync.h		\
 	smartnet_deinterleave.h	\
 	smartnet_parity.h	\
 	smartnet_crc.h	\
-	smartnet_packetize.h	\
-	smartnet_parse.h	\
 	smartnet_types.h	\
 	smartnet_subchannel_framer.h \
 	smartnet_wavsink.h
@@ -52,12 +49,8 @@ smartnet_pythondir_category =	\
 
 # additional sources for the SWIG-generated library
 smartnet_la_swig_sources = 	\
-	smartnet_sync.cc		\
 	smartnet_deinterleave.cc	\
-	smartnet_parity.cc	\
 	smartnet_crc.cc	\
-	smartnet_packetize.cc	\
-	smartnet_parse.cc	\
 	smartnet_subchannel_framer.cc \
 	smartnet_wavsink.cc
 
