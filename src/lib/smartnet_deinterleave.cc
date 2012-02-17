@@ -110,52 +110,27 @@ smartnet_deinterleave::general_work (int noutput_items,
 	return 0; //sad trombone
     }
 
-    if(VERBOSE) std::cout << "found a preamble at " << preamble_tags[0].offset << std::endl;
+    std::vector<gr_tag_t>::iterator tag_iter;
+    for(tag_iter = preamble_tags.begin(); tag_iter != preamble_tags.end(); tag_iter++) {
+	uint64_t mark = tag_iter->offset - abs_sample_cnt;
 
-    uint64_t mark = preamble_tags[0].offset - abs_sample_cnt;
+	if(VERBOSE) std::cout << "found a preamble at " << tag_iter->offset << std::endl;
 
-    int j = 0;
-    for(int k=0; k<76/4; k++) {
-	for(int l=0; l<4; l++) {
-	    out[k*4 + l] = in[mark + k + l*19];
+	for(int k=0; k<76/4; k++) {
+	    for(int l=0; l<4; l++) {
+		out[k*4 + l] = in[mark + k + l*19];
+	    }
 	}
+
+	//since you're a nonsynchronized block, you have to reissue a
+	//tag with the correct output sample number
+	add_item_tag(0, //stream ID
+		     nitems_written(mark), //sample
+		     pmt::pmt_string_to_symbol("smartnet_frame"), //key
+		     pmt::pmt_t() //data (unused here)
+		    );
     }
-
-    //since you're a nonsynchronized block, you have to reissue a
-    //tag with the correct output sample number
-    add_item_tag(0, //stream ID
-		 nitems_written(0), //sample
-		 pmt::pmt_string_to_symbol("smartnet_frame"), //key
-		 pmt::pmt_t() //data (unused here)
-		);
-
-    int num_consumed = 84 + mark;
-    consume_each(num_consumed);
-    if(VERBOSE) std::cout << "Consumed " << num_consumed << " samples" << std::endl;
-    return 76;
+    
+    consume_each(preamble_tags.back().offset - abs_sample_cnt + 84);
+    return size;
 }
-
-/*
-    while(i < noutput_items){
-	//find preamble tags
-	
-	if(in[i] & 0x02) {//if the start bit is set
-	//then the next 76 bits get deinterleaved according to the formula
-	//{1,20,39,58,2,21,40,59,3,22,41,60,...}
-	    if(noutput_items - i < 76) {
-		consume_each(i);	
-		return j;
-	    }
-	    for(int k = 0; k < 76/4; k++) {
-		for(int l = 0; l < 4; l++) {
-		    out[j + k*4 + l] = in[i + k + l*19];
-		}
-	    }
-	    j+=76;
-	    i+=84;
-	} else i++;
-    }
-
-    consume_each(i); //tell gnuradio how many input items we used
-    return j;
-*/
