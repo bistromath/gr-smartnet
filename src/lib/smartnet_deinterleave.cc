@@ -95,6 +95,7 @@ smartnet_deinterleave::general_work (int noutput_items,
     if(VERBOSE) std::cout << "Deinterleave called with " << noutput_items << " outputs" << std::endl;
 
     //you will need to look ahead 84 bits to post 76 bits of data
+    //TODO this needs to be able to handle shorter frames while keeping state in order to end gracefully
     int size = ninput_items[0] - 84;
     if(size <= 0) {
 	consume_each(0);
@@ -104,10 +105,12 @@ smartnet_deinterleave::general_work (int noutput_items,
     uint64_t abs_sample_cnt = nitems_read(0);
     std::vector<gr_tag_t> preamble_tags;
 
+    uint64_t outlen = 0; //output sample count
+
     get_tags_in_range(preamble_tags, 0, abs_sample_cnt, abs_sample_cnt + size, pmt::pmt_string_to_symbol("smartnet_preamble"));
     if(preamble_tags.size() == 0) {
 	consume_each(size);
-	return 0; //sad trombone
+	return 0;
     }
 
     std::vector<gr_tag_t>::iterator tag_iter;
@@ -125,12 +128,14 @@ smartnet_deinterleave::general_work (int noutput_items,
 	//since you're a nonsynchronized block, you have to reissue a
 	//tag with the correct output sample number
 	add_item_tag(0, //stream ID
-		     nitems_written(mark), //sample
+		     nitems_written(0) + mark, //sample
 		     pmt::pmt_string_to_symbol("smartnet_frame"), //key
 		     pmt::pmt_t() //data (unused here)
 		    );
+	outlen += 76;
     }
-    
+
+    if(VERBOSE) std::cout << "consumed " << size << ", produced " << outlen << std::endl;
     consume_each(preamble_tags.back().offset - abs_sample_cnt + 84);
-    return size;
+    return outlen;
 }

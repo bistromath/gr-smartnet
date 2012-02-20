@@ -27,25 +27,12 @@
 #include "gnuradio_swig_bug_workaround.h"	// mandatory bug fix
 //include any user-created C headers here
 #include "smartnet_types.h"
-#include "smartnet_sync.h"
 #include "smartnet_deinterleave.h"
 #include "smartnet_crc.h"
 #include "smartnet_subchannel_framer.h"
 #include "smartnet_wavsink.h"
 #include <stdexcept>
 %}
-
-GR_SWIG_BLOCK_MAGIC(smartnet,sync);
-
-smartnet_sync_sptr smartnet_make_sync();
-
-class smartnet_sync : public gr_sync_block
-{
-private:
-	smartnet_sync();
-
-public:
-};
 
 GR_SWIG_BLOCK_MAGIC(smartnet,deinterleave);
 
