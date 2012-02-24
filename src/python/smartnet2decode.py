@@ -94,7 +94,7 @@ class my_top_block(gr.top_block):
 		#self.smartnet_packetize = smartnet.packetize()
 		#self.parse = smartnet.parse(queue) #replace with a message sink
 
-		if options.filename is None:		
+		if options.filename is None:
 			self.connect(self.u, self.demod)
 		else:
 			self.connect(self.fs, self.demod)
