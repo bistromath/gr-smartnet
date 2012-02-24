@@ -87,12 +87,8 @@ class my_top_block(gr.top_block):
 		self.start_correlator = gr.correlate_access_code_tag_bb("10101100",
 		                                                        0,
 		                                                        "smartnet_preamble") #should mark start of packet
-		#self.smartnet_sync = smartnet.sync() #won't need w/tags
 		self.smartnet_deinterleave = smartnet.deinterleave()
-		#self.smartnet_parity = smartnet.parity()
 		self.smartnet_crc = smartnet.crc(queue)
-		#self.smartnet_packetize = smartnet.packetize()
-		#self.parse = smartnet.parse(queue) #replace with a message sink
 
 		if options.filename is None:
 			self.connect(self.u, self.demod)
@@ -319,7 +315,7 @@ def main():
 		chanlist = None
 
 	# build the graph
-	queue = gr.msg_queue()
+	queue = gr.msg_queue(10)
 	tb = my_top_block(options, queue)
 	runner = top_block_runner(tb)
 
@@ -332,7 +328,7 @@ def main():
 
 	currentoffset = 0
 
-	updaterate = 20
+	updaterate = 10
 
 	#tb.setvolume(options.volume)
 	#tb.mute()
@@ -350,11 +346,8 @@ def main():
 					[newfreq, newaddr] = parsefreq(sentence, chanlist)
 
 					if newfreq == currentoffset and newaddr != (options.monitor & 0xFFF0):
-						#print "Muting: current channel in use by %i" % newaddr
-						#tb.setvolume(0)
 						tb.mute()
 					if newaddr == (options.monitor & 0xFFF0): #the mask is to allow listening to all "flags" within a talkgroup: emergency, broadcast, etc.
-						#tb.setvolume(options.volume)
 						tb.unmute(options.volume)
 						if newfreq is not None and newfreq != currentoffset:
 							print "Changing freq to %f" % newfreq

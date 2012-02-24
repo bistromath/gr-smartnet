@@ -24,25 +24,21 @@ class fsk_demod(gr.hier_block2):
 
 		self._freqoffset = options.offset
 
-		self._filtdecim = 1
+		#first bring that input stream down to a manageable level, let's say 3 samples per bit.
+		self._clockrec_oversample = 3
 
-		#first bring that input stream down to a manageable level, let's say 10 samples per bit. that's 36kS/s.
-		self._clockrec_oversample = 10
-
-		#these taps are for a channel selection filter
 		self._downsampletaps = gr.firdes.low_pass(1, self._samples_per_second, 10000, 1000, firdes.WIN_HANN)
 
 		self._decim = int(self._samples_per_second / (self._syms_per_sec * self._clockrec_oversample))
 
 		print "Demodulator decimation: %i" % (self._decim,)
-
 		self._downsample = gr.freq_xlating_fir_filter_ccf(self._decim, #decimation
 														  self._downsampletaps, #taps
 														  self._freqoffset, #freq offset
 														  self._samples_per_second) #sampling rate
 
 		#using a pll to demod gets you a nice IIR LPF response for free
-		self._demod = gr.pll_freqdet_cf(0.20, #gain alpha, rad/samp, experimentally determined
+		self._demod = gr.pll_freqdet_cf(2.0 / self._clockrec_oversample, #gain alpha, rad/samp
 										 2*pi/self._clockrec_oversample,  #max freq, rad/samp
 										-2*pi/self._clockrec_oversample)  #min freq, rad/samp
 
