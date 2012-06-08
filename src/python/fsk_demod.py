@@ -7,7 +7,6 @@
 from gnuradio import gr, gru, blks2, digital, window
 from gnuradio import eng_notation
 from gnuradio.gr import firdes
-import gr_ais
 from math import pi
 
 class fsk_demod(gr.hier_block2):
