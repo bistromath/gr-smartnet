@@ -20,6 +20,12 @@
  */
 
 %feature("autodoc","1");
+
+/* workaround for swig bug with gcc >= 4.6.1 */
+%{
+#include <cstddef>
+%}
+
 %include "exception.i"
 %import "gnuradio.i"
 
