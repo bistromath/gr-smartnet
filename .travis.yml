@@ -1,0 +1,18 @@
+dist: xenial 
+language: cpp
+compiler:
+  - gcc
+before_install:
+  - sudo apt-get install swig libcurl4-openssl-dev r-base-dev r-base-core groff gnuplot autoconf automake autotools-dev m4 libtool liblzma-dev libbz2-dev libyaml-perl libtool-bin 
+  - (wget http://ftp.gnu.org/gnu/automake/automake-1.11.4.tar.gz && tar -zxf automake-1.11.4.tar.gz && cd automake-1.11.4 && ./configure && sudo make && sudo make install)
+  - automake --version
+  - autoconf --version
+  - libtool --version
+  - (rm -rf htslib && wget https://github.com/samtools/htslib/archive/1.4.zip && unzip 1.4.zip && mv htslib-1.4/ htslib && cd htslib && autoheader && autoconf && ./configure && make && sudo make install && cp Makefile Makefile.in)
+  - sudo ln -s /usr/share/aclocal   /usr/local/share/aclocal
+  - autoheader
+  - autoreconf
+script: 
+  - chmod u+x ./configure
+
+# .travis.yml file by Montana Mendy for this repo (motorola-trunking-sys)
